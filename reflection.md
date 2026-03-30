@@ -7,6 +7,22 @@
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
 
+Object: Owner
+Attributes: name, available time, preferences
+Methods: set availability, get availability, add preference, get preferences
+
+Object: Pet
+Attributes: name, species, breed, age, special needs (list of any health or care notes)
+Methods: get info, add special need, get special needs
+
+Object: Task
+Attributes: name, category (walk, feeding, grooming, meds, enrichment), duration (minutes), priority (high/medium/low), frequency (daily, weekly, etc.)
+Methods: add task, edit task, get task, mark complete
+
+Object: Scheduler (Plan Generator)
+Attributes: owner (Owner object), pet (Pet object), tasks (list of Task objects), total time budget (from owner availability)
+Methods: generate plan — sorts/filters tasks by priority and fits them into available time, get plan summary — returns the daily plan as output, explain plan — gives reasoning for why tasks were chosen/ordered
+
 **b. Design changes**
 
 - Did your design change during implementation?
