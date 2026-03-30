@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 
 PRIORITY_RANK = {"high": 0, "medium": 1, "low": 2}
 
@@ -17,6 +17,7 @@ class Task:
     completed: bool = False
     last_completed: date | None = None
     due_date: date | None = None
+    scheduled_time: time | None = None  # start time in the day's plan
 
     def edit_task(self, **kwargs):
         """Update one or more task attributes by keyword."""
@@ -35,6 +36,7 @@ class Task:
             "completed": self.completed,
             "last_completed": str(self.last_completed) if self.last_completed else None,
             "due_date": str(self.due_date) if self.due_date else None,
+            "scheduled_time": str(self.scheduled_time) if self.scheduled_time else None,
         }
 
     def mark_complete(self) -> "Task | None":
@@ -208,7 +210,31 @@ class Scheduler:
             if not pet_queues:
                 break
 
+        # Assign sequential time slots starting at 8:00 AM
+        current_minutes = 8 * 60  # 8:00 AM in minutes
+        for task in self.plan:
+            hours, mins = divmod(current_minutes, 60)
+            task.scheduled_time = time(hours, mins)
+            current_minutes += task.duration
+
         return list(self.plan)
+
+    def detect_conflicts(self) -> list[tuple[Task, Task]]:
+        """Find pairs of tasks whose time slots overlap."""
+        conflicts = []
+        for i, a in enumerate(self.plan):
+            if a.scheduled_time is None:
+                continue
+            a_start = a.scheduled_time.hour * 60 + a.scheduled_time.minute
+            a_end = a_start + a.duration
+            for b in self.plan[i + 1:]:
+                if b.scheduled_time is None:
+                    continue
+                b_start = b.scheduled_time.hour * 60 + b.scheduled_time.minute
+                b_end = b_start + b.duration
+                if a_start < b_end and b_start < a_end:
+                    conflicts.append((a, b))
+        return conflicts
 
     def get_plan_summary(self) -> str:
         """Return a numbered, formatted list of scheduled tasks."""
@@ -218,7 +244,8 @@ class Scheduler:
         budget = self.owner.get_availability()
         lines = [f"Plan for {self.owner.name} — {total}/{budget} min used"]
         for i, task in enumerate(self.plan, 1):
-            lines.append(f"  {i}. [{task.priority.upper()}] {task.name} ({task.duration} min)")
+            time_str = task.scheduled_time.strftime("%I:%M %p") if task.scheduled_time else "??:??"
+            lines.append(f"  {i}. {time_str} [{task.priority.upper()}] {task.name} ({task.duration} min)")
         return "\n".join(lines)
 
     def explain_plan(self) -> str:
